@@ -2,11 +2,9 @@
   "WiFi_Settings": {
     "SSID": "H2OMARK-Gate",
     "Password": "password",
-    "NTP_server": "pool.ntp.org",
-    "Timezone": "America/New_York",
-    "DNS_Server": "1.1.1.1"
+    "NTP_server": "pool.ntp.org"
   },
-  "magic_url": "https://google.com/magic_link",
+  "magic_url": "http://script.google.com/macros/s/81J6WAyUPGox18KXmt04WABhG6qQz2Kpis9wA9syTaXsg7KA6v/exec",
   "Relay_Mappings": [
     {
       "Name": "R1",
