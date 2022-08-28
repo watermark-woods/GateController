@@ -4,7 +4,17 @@
     "Password": "password",
     "NTP_server": "pool.ntp.org"
   },
-  "magic_url": "http://script.google.com/macros/s/81J6WAyUPGox18KXmt04WABhG6qQz2Kpis9wA9syTaXsg7KA6v/exec",
+  "magic_url": "https://script.google.com/macros/s/81J6WAyUPGox18KXmt04WABhG6qQz2Kpis9wA9syTaXsg7KA6v/exec",
+  "Relays_InitalState": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+  ]
   "Relay_Mappings": [
     {
       "Name": "R1",
