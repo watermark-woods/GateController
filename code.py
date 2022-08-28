@@ -87,9 +87,9 @@ def cleanupAlreadyUsed():  #remove excess already_Used events
 
 def main():
     rgb_led = [
-        machine.Pin("", machine.Pin.OUT), # Red LED
-        machine.Pin("", machine.Pin.OUT), # Green LED
-        machine.Pin("", machine.Pin.OUT)  # Blue LED
+        machine.Pin("GP3", machine.Pin.OUT), # Red LED
+        machine.Pin("GP4", machine.Pin.OUT), # Green LED
+        machine.Pin("GP5", machine.Pin.OUT)  # Blue LED
     ]
     config = load_config()
     connect_to_wifi(config['WiFi_Settings']['SSID'], config['WiFi_Settings']['PASSWORD'], rgb_led) 
