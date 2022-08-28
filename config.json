@@ -1,0 +1,60 @@
+{
+  "WiFi_Settings": {
+    "SSID": "H2OMARK-Gate",
+    "Password": "password",
+    "NTP_server": "pool.ntp.org",
+    "Timezone": "America/New_York",
+    "DNS_Server": "1.1.1.1"
+  },
+  "magic_url": "https://google.com/magic_link",
+  "Relay_Mappings": [
+    {
+      "Name": "R1",
+      "Relay_number": 1,
+      "High_Value": "On",
+      "Low_Value": "Off"
+    },
+    {
+      "Name": "R2",
+      "Relay_number": 2,
+      "High_Value": "On",
+      "Low_Value": "Off"
+    },
+    {
+      "Name": "R3",
+      "Relay_number": 3,
+      "High_Value": "On",
+      "Low_Value": "Off"
+    },
+    {
+      "Name": "R4",
+      "Relay_number": 4,
+      "High_Value": "On",
+      "Low_Value": "Off"
+    },
+    {
+      "Name": "R5",
+      "Relay_number": 5,
+      "High_Value": "On",
+      "Low_Value": "Off"
+    },
+    {
+      "Name": "R6",
+      "Relay_number": 6,
+      "High_Value": "On",
+      "Low_Value": "Off"
+    },
+    {
+      "Name": "R7",
+      "Relay_number": 7,
+      "High_Value": "On",
+      "Low_Value": "Off"
+    },
+    {
+      "Name": "R8",
+      "Relay_number": 8,
+      "High_Value": "On",
+      "Low_Value": "Off"
+    }
+  ]
+}
