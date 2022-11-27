@@ -1,5 +1,5 @@
 # GateController
-This repository houses the code for the watermark woods gate controller, it is ment to be deployed on a Raspberry Pi Pico W via micropython.
+This repository houses the code for the watermark woods gate controller, it is ment to be deployed on a Raspberry Pi Pico W via circutpython.
 edit the config.yaml file with the correct wifi settings, Magic URL, and Special Names
 
 Custom google apps scripts must be uploaded to better format calender events for the gate controller to use.
@@ -16,7 +16,7 @@ Theses names can be customized in the settings file.
 
 ## Installing and running
 ### Google Cloud
-1. In the google apps script console, create a new project
+1. In the [google apps script console](https://www.google.com/script/start/), create a new project
 2. Copy the contents of the googlecloudcode.js file to the project
 3. Save the project
 4. Click the depoy button on the top right of the page
@@ -26,7 +26,7 @@ Theses names can be customized in the settings file.
 8. Click the deploy button
 9. Copy the Web app URL to the magic link section of the config file.
 ### Raspberry Pi Pico W
-1. Download the lates version of micropython from [micropython.org](https://micropython.org/download/rp2-pico-w/).
+1. Download the lates version of circutpython from [circutpython.org](https://circuitpython.org/board/raspberry_pi_pico_w/).
 2. Hold down the BOOTSEL button on the board and power on the board.
 3. Drag the uf2 file onto the board.
 4. Wait for the board to boot up.

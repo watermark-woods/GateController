@@ -53,16 +53,16 @@
       "Low_Value": "OFF"
     },
     {
-      "Name": "R7",
+      "Name": "Eye Heater",
       "Relay_number": 7,
       "High_Value": "On",
       "Low_Value": "OFF"
     },
     {
-      "Name": "R8",
+      "Name": "Gate",
       "Relay_number": 8,
-      "High_Value": "ON",
-      "Low_Value": "OFF"
+      "High_Value": "Open",
+      "Low_Value": "Closed"
     }
   ]
 }
