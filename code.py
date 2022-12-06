@@ -1,14 +1,16 @@
-import  json, wifi, board, time, adafruit_ntp, socketpool, adafruit_datetime, adafruit_requests, rtc, ssl
+import json, wifi, board, time, adafruit_ntp, socketpool, adafruit_datetime, adafruit_requests, rtc, ssl
 from digitalio import DigitalInOut, Direction
 
-cached_data = ""
-already_used = []
+# declare global variables
+cached_data = ""   # used as a backup if we can't later access the calendar
 
 def load_config():
     with open('config.json') as f: # Open the config.json file
         conf = json.load(f) # Load the config.json file
-        # print (conf)
-        return conf
+
+    # print (conf)
+    return conf
+
 
 def connect_to_wifi(SSID, PASSWORD, rgb_led):
     if wifi.radio.ipv4_address is None:
@@ -44,20 +46,38 @@ def connect_to_wifi(SSID, PASSWORD, rgb_led):
         print('network config: {IP:%s,GW:%s,SBN:%s,DNS:%s}' % (wifi.radio.ipv4_address,wifi.radio.ipv4_gateway,wifi.radio.ipv4_subnet,wifi.radio.ipv4_dns)) # Print message
         return True
 
-def create_ntp(ntp_host = "time.nist.gov"):
+
+def create_ntp(pool, ntp_host = "pool.ntp.org"):
     global ntptime
     ntptime = adafruit_ntp.NTP(pool, server=ntp_host)
-    rtc.RTC().datetime = ntptime.datetime
-    
+    try:
+        rtc.RTC().datetime = ntptime.datetime
+        print("Initial timesync done")
+    except:
+        print("could not get time from server, waiting 3 minutes then rebooting")
+        time.sleep(180)
+        import supervisor
+        supervisor.reload()       
 
+
+# routine to reach out to time server and set real time clock, using existing time connection
 def update_time_from_ntp():
-    rtc.RTC().datetime = ntptime.datetime
+    try:
+        rtc.RTC().datetime = ntptime.datetime
+        print("Follow-on timesync done")
+    except:
+        print("could not get time from server")
+        pass      
+
 
 def get_time(intime = None):
+    # we default to current time unless a particular time was passed
     if intime is None: 
         intime = time.localtime()
     else: 
         intime = time.localtime(intime)
+
+    # need to convert time format into datetime format
     return adafruit_datetime.datetime(
         year=intime.tm_year,
         month=intime.tm_mon, 
@@ -66,21 +86,24 @@ def get_time(intime = None):
         minute=intime.tm_min,
         second=intime.tm_sec
     )
-    
+
+
 def get_eventlist(calendar_url, rgb_led):
-    global cached_data
+    global cached_data  # let python know we want to use the global variable
+
+    # call the helper function that reads Google calendar and returns json list of next 2 weeks of events
     try:
         caldata = http_req.get(calendar_url)
     except: 
         print("Error getting calendar data")
         return cached_data
+
+    # check that we had a successful GET call
     if caldata.status_code != 200:
         # turn on the red LED
         rgb_led[0].value = 1
         rgb_led[1].value = 0
         rgb_led[2].value = 0
-        caldata.close()
-        return cached_data
     else:
         # blink the blue LED for 2 tenths of a second and turn off the red LED
         rgb_led[0].value = 0
@@ -89,28 +112,68 @@ def get_eventlist(calendar_url, rgb_led):
         time.sleep(0.2)
         rgb_led[1].value = 1
         rgb_led[2].value = 0
+
+        # update our cached_data, as our internet may go in and out
         cached_data = caldata.json()
-        caldata.close()
-        return cached_data
 
-def get_next_event(caldata):
-    global already_used
-    #print(already_used)
-    for event in caldata:  # runs to the number of entries, i = to current entry
-        found = False
-        for aevent in already_used:  # Skip past events that have already been used
-            if event["ID"] is aevent["ID"]:
-                found = True
-        if found == True:
-            continue
-        return event  #returns the next event
-    return None  #returns none if no event is found
+    caldata.close()
+    return cached_data
 
-def cleanupAlreadyUsed():  #remove excess already_Used events
-    for i in already_used:  #runs to the number of entries, i = to current entry
-        if get_time(intime = i["End"]/ 1000) <= time.time():  #runs code if the end time for entry is less than current time
-            print("Removeing " + i["ID"] + ", Its time has past")  #says its removing i event from already used
-            already_used.remove(i)  #remove the i entry completely
+
+def check_handled_event(currentEvent, already_used):
+    #iterate through the already used list and report back if found
+    print("length of already_used is %d" % len(already_used))
+    for event in already_used:
+        if event["ID"] == currentEvent["ID"]:
+            return True
+
+    return False
+
+
+#remove excess already_Used events
+def cleanup_already_used(already_used):
+    # to properly remove items in the array while iterating it at same time, we need to delete backwards so indexes don't get messed up
+    # create a range starting at end accounting for base 0 index, decrementing by 1, and stopping when we get out of array range
+    # example for array of 4 items the range would yield (3, 2, 1, 0)
+
+    # keep events around for a period of time after their ending. Google is slow to drop past events off list
+    history_retention = get_time() + adafruit_datetime.timedelta(hours=2)
+
+    for i in range(len(already_used) -1, -1, -1):
+        # see if retention time is already passed end of end of event
+        if history_retention > get_time(intime = already_used[i]["End"]/ 1000):
+            print("Removing " + already_used[i]["ID"] + ", Its time has past")
+            del already_used[i]  #remove the i entry completely
+
+
+# locates correct relay for event and triggers it on or off depending on calendar command
+def trigger_relay(config, evtsubject, eventID, Relays):
+    # keep track if we found the relay in the configuration settings
+    bRelayFound = False
+
+    # Run through the relay mappings
+    for r_map in config['Relay_Mappings']:
+        if evtsubject[0] == r_map["Name"]: # If the event subject matches the relay mapping name
+            if evtsubject[1] == r_map["High_Value"]: # If the event subject matches the relay mapping high value
+                # Write a log message containing the name and action of the event
+                print(r_map["Name"] + " is " + r_map["High_Value"])
+                Relays[r_map["Relay_number"]].value = 1 # Turn the relay on
+                bRelayFound = True
+                break
+            elif evtsubject[1] == r_map["Low_Value"]: # If the event subject matches the relay mapping low value
+                # Write a log message containing the name and action of the event
+                print(r_map["Name"] + " is " + r_map["Low_Value"])
+                Relays[r_map["Relay_number"]].value = 0 # Turn the relay off
+                bRelayFound = True
+                break
+            else:
+                # means command used on the relay doesn't match what is in the configuration
+                print("%s action %s does not match config for %s. Use either %s or %s for relay %s" % (eventID, evtsubject[1], r_map["Name"], r_map["Low_Value"], r_map["High_Value"]))
+
+    # if we didn't find the relay, report that out
+    if not bRelayFound:
+        print("relay " + evtsubject[0] + " on event(" + eventID + ") not found in configuration")
+
 
 def main():
     rgb_led = [
@@ -121,21 +184,22 @@ def main():
     for led in rgb_led:
         led.direction = Direction.OUTPUT
 
+    # load configuration
     config = load_config()
-    wifi_connected = connect_to_wifi(config['WiFi_Settings']['SSID'], config['WiFi_Settings']['Password'], rgb_led) 
 
+    # attempt to connect to WiFi based upon configuration setting
+    wifi_connected = connect_to_wifi(config['WiFi_Settings']['SSID'], config['WiFi_Settings']['Password'], rgb_led) 
     if not wifi_connected: 
-        print("Could Not Connect to wifi, Waiting 30 minutes the powercycleing")
+        print("Could Not Connect to wifi, Waiting 30 minutes then powercycling")
         time.sleep(1800)
         import supervisor
         supervisor.reload()
 
-    global pool
-    global http_req
     pool = socketpool.SocketPool(wifi.radio)
 
+    global http_req
     http_req = adafruit_requests.Session(pool, ssl_context=ssl.create_default_context())
-    create_ntp(config['WiFi_Settings']['NTP_server']) # Update the time
+    create_ntp(pool, config['WiFi_Settings']['NTP_server']) # Update the time
 
     # Initialize the Relays
     Relays = [
@@ -152,53 +216,88 @@ def main():
         relay.direction = Direction.OUTPUT
         relay.value = config["Relays_InitalState"][index]
     
-    print("Performing first retrival")
-    curent_time = get_time() 
-    next_already_used_cleanup = curent_time + adafruit_datetime.timedelta(hours=1) # Set the next already used cleanup to be 1 hour from now
-    next_calendar_update = curent_time + adafruit_datetime.timedelta(minutes=10) # Set the next calendar update to be 10 minutes from now
-    next_time_update = curent_time + adafruit_datetime.timedelta(hours=4)
-    caldata = get_eventlist(config['magic_url'], rgb_led) # Get the calendar data
-    if caldata == "":
-        print("Could not get data")
-    # else: 
-    #     print(caldata)
+    # setup our time tracker and initial refresh times
+    current_time = get_time()
+    INTERVAL_CALENDAR_UDPATE = 60           # check once a minute
+    INTERVAL_TIME_UPDATE = 60 * 60 * 4      # 60 * 60 * 4 hours  
+    INTERVAL_ALREADY_USED_CLEANUP = 60      # 60*60  hourly
+
+    next_calendar_update = current_time + adafruit_datetime.timedelta(seconds=INTERVAL_CALENDAR_UDPATE)
+    next_time_update = current_time + adafruit_datetime.timedelta(seconds=INTERVAL_TIME_UPDATE)
+    next_already_used_cleanup = current_time + adafruit_datetime.timedelta(seconds=INTERVAL_ALREADY_USED_CLEANUP)
+
+    print("Performing first retrieval")
+    caldata = get_eventlist(config['magic_url'], rgb_led)
+    print(caldata)
+    print("caldata Done")
+
+    # keep a list of all the events we've processed
+    already_used = []
+
+    # all setup. now we just loop forever doing our tasks
     while True:
-        time.sleep(1)
-        curent_time = get_time()
-        if curent_time > next_time_update:
+        # always take a break between loop iterations
+        time.sleep(30)   # set in seconds. set to 1 for debug purposes. ever 30 seconds normally
+        current_time = get_time()
+
+        # pico loses time easily, so regularly resync the real time clock (RTC)
+        if current_time >= next_time_update:
             update_time_from_ntp()
-            next_time_update = curent_time + adafruit_datetime.timedelta(hours=4)
-        if curent_time > next_already_used_cleanup: # If the time is greater than the next already used cleanup
+
+            # schecule the next time update
+            next_time_update = current_time + adafruit_datetime.timedelta(seconds=INTERVAL_TIME_UPDATE)
+
+        if current_time >= next_already_used_cleanup: # If the time is greater than the next already used cleanup
             print("Cleanup on aisle 5, cleaning past events")
-            cleanupAlreadyUsed() # Cleanup the already used events
-            next_already_used_cleanup = curent_time + adafruit_datetime.timedelta(hours=1)
-        if curent_time > next_calendar_update:  # If the time is greater than the next calendar update
-            print("Performaing Calander Update")
+            cleanup_already_used(already_used) # Cleanup the already used events
+            next_already_used_cleanup = current_time + adafruit_datetime.timedelta(seconds=INTERVAL_ALREADY_USED_CLEANUP)
+
+        # we check the calendar on a schedule. if can't connect, will keep what we have cached and hope can get a connection later
+        if current_time >= next_calendar_update:  # If the time is greater than the next calendar update
+            print("Performing Calander Update." )
             caldata = get_eventlist(config['magic_url'], rgb_led)
-            next_calendar_update = curent_time + adafruit_datetime.timedelta(minutes=10)
-        event = get_next_event(caldata) # Get the next event
-        if event is not None:
-            if get_time(intime = event["Start"] / 1000) < curent_time:
-                print("Working on event: %s, with action of %s" % (event["ID"],event["Start"]))
-                already_used.append(event) # Add the event to the already used list
-                print(already_used)
-                evtsubject = event["Title"].split(" ") # Split the event subject into an array
-                if len(evtsubject) < 2:
-                   continue
-                for r_map in config['Relay_Mappings']: # Run through the relay mappings
-                    if evtsubject[0] == r_map["Name"]: # If the event subject matches the relay mapping name
-                        if evtsubject[1] == r_map["High_Value"]: # If the event subject matches the relay mapping high value
-                            # Write a log message containing the name and action of the event
-                            print(r_map["Name"] + " is " + r_map["High_Value"])
-                            Relays[r_map["Relay_number"]].value = 1 # Turn the relay on
-                            break
-                        elif evtsubject[1] == r_map["Low_Value"]: # If the event subject matches the relay mapping low value
-                            # Write a log message containing the name and action of the event
-                            print(r_map["Name"] + " is " + r_map["Low_Value"])
-                            Relays[r_map["Relay_number"]].value = 0 # Turn the relay off
-                            break
-                        else:
-                            print("Action does not match config", evtsubject)
-         
+
+            # set next time will will refresh the schedule from the calendar
+            next_calendar_update =  current_time + adafruit_datetime.timedelta(seconds=INTERVAL_CALENDAR_UDPATE)
+            #print(adafruit_datetime.datetime.fromtimestamp(next_calendar_update))
+    
+        # inspect all events and handle any that are due. There may be more than one calendar event/relay at the same time
+        for event in caldata:
+            # make sure we haven't already handled this event
+            if check_handled_event(event, already_used):
+                print("skipping event(" + event["ID"] + "). already handled")
+            else:
+                # pull time out of the event and format it properly
+                event_start = get_time(intime = event["Start"] / 1000)
+                event_end = get_time(intime = event["End"] / 1000)
+
+                print("starttime %s, endtime %s, ctime %s" % (event_start, event_end, current_time))
+
+                # if current time is equal or past the event start time and we are still within the window to perform the task
+                if current_time >= event_start:
+                    # record it so we can skip on future passes
+                    already_used.append(event)
+                
+                    print("Working on event: %s, with action of %s, and start at %s" % (event["ID"],event["Title"],event_start))
+
+                    # Split the event subject into an array of exactly 2 dimensions with a space of divider. 
+                    # format should be <relay name> <action>
+                    # ex: "GATE ON"
+                    evtsubject = event["Title"].split(" ")
+                    if len(evtsubject) != 2:
+                        print("event lacks proper relay and action in calendar")
+                        continue #skip this event
+
+                    # Run through the relay mappings
+                    trigger_relay(config, evtsubject, event["ID"], Relays)
+                else:
+                    print("too early for %s" % event["ID"])
+
+        # @JACKSON i'm wondering if we should set a time period for a daily reboot
+        # if internet connection is lost, I don't see how program reestablishes internet/time server connection again in future
+    return
+
+
+# kick things off         
 if __name__ == "__main__":
     main()
