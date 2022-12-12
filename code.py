@@ -12,11 +12,11 @@ def load_config():
     return conf
 
 
-def connect_to_wifi(SSID, PASSWORD, rgb_led):
+def connect_to_wifi(network_SSID, network_password, rgb_led):
     if wifi.radio.ipv4_address is None:
-        print('connecting to network...') # Print message
+        print('connecting to network... %s with password of "%s"' % (network_SSID, network_password)) # Print message
         try:
-            wifi.radio.connect(SSID, PASSWORD, timeout = 1)
+            wifi.radio.connect(SSID = network_SSID, password = network_password)
         except ConnectionError:
             print("Bad SSID/Password could not connect")
             rgb_led[0].value = 1
@@ -27,7 +27,7 @@ def connect_to_wifi(SSID, PASSWORD, rgb_led):
                 timeout += 1 # Increment the timeout
                 # Blink the blue LED every half second
                 rgb_led[2].value = 1
-                wifi.radio.connect(SSID, PASSWORD, timeout = 0.75)
+                wifi.radio.connect(network_SSID, network_password, timeout = 0.75)
                 rgb_led[2].value = 0
                 time.sleep(0.25)
             if wifi.radio.ipv4_address is None: # If the device is not connected to the network
@@ -49,7 +49,7 @@ def connect_to_wifi(SSID, PASSWORD, rgb_led):
 
 def create_ntp(pool, ntp_host = "pool.ntp.org"):
     global ntptime
-    ntptime = adafruit_ntp.NTP(pool, server=ntp_host)
+    ntptime = adafruit_ntp.NTP(pool, server=ntp_host, tz_offset=-5)
     try:
         rtc.RTC().datetime = ntptime.datetime
         print("Initial timesync done")
@@ -73,18 +73,30 @@ def update_time_from_ntp():
 def get_time(intime = None):
     # we default to current time unless a particular time was passed
     if intime is None: 
-        intime = time.localtime()
-    else: 
-        intime = time.localtime(intime)
+        event_date_time = time.localtime()
+
+        return adafruit_datetime.datetime(
+            year=event_date_time.tm_year,
+            month=event_date_time.tm_mon, 
+            day=event_date_time.tm_mday, 
+            hour=event_date_time.tm_hour, 
+            minute=event_date_time.tm_min,
+            second=event_date_time.tm_sec
+        )
+
+    # time format is "YYYY-MM-DD HH:MM:SS"
+    datetimeparts = intime.split(" ") # split date from time
+    dateparts = datetimeparts[0].split("-") # chunk the date up
+    timeparts = datetimeparts[1].split(":") # chunk the time up
 
     # need to convert time format into datetime format
     return adafruit_datetime.datetime(
-        year=intime.tm_year,
-        month=intime.tm_mon, 
-        day=intime.tm_mday, 
-        hour=intime.tm_hour, 
-        minute=intime.tm_min,
-        second=intime.tm_sec
+        year=int(dateparts[0]),
+        month=int(dateparts[1]), 
+        day=int(dateparts[2]), 
+        hour=int(timeparts[0]), 
+        minute=int(timeparts[1]),
+        second=int(timeparts[2])
     )
 
 
@@ -141,7 +153,7 @@ def cleanup_already_used(already_used):
 
     for i in range(len(already_used) -1, -1, -1):
         # see if retention time is already passed end of end of event
-        if history_retention > get_time(intime = already_used[i]["End"]/ 1000):
+        if history_retention > get_time(intime = already_used[i]["End"]):
             print("Removing " + already_used[i]["ID"] + ", Its time has past")
             del already_used[i]  #remove the i entry completely
 
@@ -247,17 +259,20 @@ def main():
             # schecule the next time update
             next_time_update = current_time + adafruit_datetime.timedelta(seconds=INTERVAL_TIME_UPDATE)
 
-        if current_time >= next_already_used_cleanup: # If the time is greater than the next already used cleanup
+        # we clean up past events on a schedule
+        if current_time >= next_already_used_cleanup:
             print("Cleanup on aisle 5, cleaning past events")
-            cleanup_already_used(already_used) # Cleanup the already used events
+            cleanup_already_used(already_used)
+
+            # schedule the next cleanup event
             next_already_used_cleanup = current_time + adafruit_datetime.timedelta(seconds=INTERVAL_ALREADY_USED_CLEANUP)
 
-        # we check the calendar on a schedule. if can't connect, will keep what we have cached and hope can get a connection later
-        if current_time >= next_calendar_update:  # If the time is greater than the next calendar update
+        # we check the calendar on a schedule
+        if current_time >= next_calendar_update:
             print("Performing Calander Update." )
             caldata = get_eventlist(config['magic_url'], rgb_led)
 
-            # set next time will will refresh the schedule from the calendar
+            # schedule the next calendar refresh
             next_calendar_update =  current_time + adafruit_datetime.timedelta(seconds=INTERVAL_CALENDAR_UDPATE)
             #print(adafruit_datetime.datetime.fromtimestamp(next_calendar_update))
     
@@ -268,24 +283,29 @@ def main():
                 print("skipping event(" + event["ID"] + "). already handled")
             else:
                 # pull time out of the event and format it properly
-                event_start = get_time(intime = event["Start"] / 1000)
-                event_end = get_time(intime = event["End"] / 1000)
+                event_start = get_time(intime = event["Start"])
+                event_end = get_time(intime = event["End"])
 
                 print("starttime %s, endtime %s, ctime %s" % (event_start, event_end, current_time))
 
                 # if current time is equal or past the event start time and we are still within the window to perform the task
-                if current_time >= event_start:
+                if  current_time > event_end:
+                    # record it so we can skip on future passes
+                    already_used.append(event)
+
+                    print("too late for %s" % event["ID"])
+                elif current_time >= event_start :
                     # record it so we can skip on future passes
                     already_used.append(event)
                 
-                    print("Working on event: %s, with action of %s, and start at %s" % (event["ID"],event["Title"],event_start))
+                    print("Working on event: %s, with action of %s, and start at %s" % (event["ID"],event["Action"],event_start))
 
-                    # Split the event subject into an array of exactly 2 dimensions with a space of divider. 
+                    # Split the event action into an array of exactly 2 dimensions with a space of divider. 
                     # format should be <relay name> <action>
                     # ex: "GATE ON"
-                    evtsubject = event["Title"].split(" ")
+                    evtsubject = event["Action"].split(" ")
                     if len(evtsubject) != 2:
-                        print("event lacks proper relay and action in calendar")
+                        print("event lacks proper relay and status from calendar helper function")
                         continue #skip this event
 
                     # Run through the relay mappings
@@ -295,7 +315,7 @@ def main():
 
         # @JACKSON i'm wondering if we should set a time period for a daily reboot
         # if internet connection is lost, I don't see how program reestablishes internet/time server connection again in future
-    return
+
 
 
 # kick things off         
