@@ -49,7 +49,7 @@ def connect_to_wifi(network_SSID, network_password, rgb_led):
 
 def create_ntp(pool, ntp_host = "pool.ntp.org"):
     global ntptime
-    ntptime = adafruit_ntp.NTP(pool, server=ntp_host, tz_offset=-5)
+    ntptime = adafruit_ntp.NTP(pool, server=ntp_host, tz_offset=0)
     try:
         rtc.RTC().datetime = ntptime.datetime
         print("Initial timesync done")
@@ -75,7 +75,7 @@ def get_time(intime = None):
     if intime is None: 
         event_date_time = time.localtime()
 
-        return adafruit_datetime.datetime(
+        ada_datetime =  adafruit_datetime.datetime(
             year=event_date_time.tm_year,
             month=event_date_time.tm_mon, 
             day=event_date_time.tm_mday, 
@@ -83,21 +83,23 @@ def get_time(intime = None):
             minute=event_date_time.tm_min,
             second=event_date_time.tm_sec
         )
+    else:
+        # time format is "YYYY-MM-DD HH:MM:SS"
+        datetimeparts = intime.split(" ") # split date from time
+        dateparts = datetimeparts[0].split("-") # chunk the date up
+        timeparts = datetimeparts[1].split(":") # chunk the time up
 
-    # time format is "YYYY-MM-DD HH:MM:SS"
-    datetimeparts = intime.split(" ") # split date from time
-    dateparts = datetimeparts[0].split("-") # chunk the date up
-    timeparts = datetimeparts[1].split(":") # chunk the time up
+        # need to convert time format into datetime format
+        ada_datetime = adafruit_datetime.datetime(
+            year=int(dateparts[0]),
+            month=int(dateparts[1]), 
+            day=int(dateparts[2]), 
+            hour=int(timeparts[0]), 
+            minute=int(timeparts[1]),
+            second=int(timeparts[2])
+        )
 
-    # need to convert time format into datetime format
-    return adafruit_datetime.datetime(
-        year=int(dateparts[0]),
-        month=int(dateparts[1]), 
-        day=int(dateparts[2]), 
-        hour=int(timeparts[0]), 
-        minute=int(timeparts[1]),
-        second=int(timeparts[2])
-    )
+    return ada_datetime
 
 
 def get_eventlist(calendar_url, rgb_led):
@@ -134,7 +136,7 @@ def get_eventlist(calendar_url, rgb_led):
 
 def check_handled_event(currentEvent, already_used):
     #iterate through the already used list and report back if found
-    print("length of already_used is %d" % len(already_used))
+
     for event in already_used:
         if event["ID"] == currentEvent["ID"]:
             return True
@@ -144,13 +146,12 @@ def check_handled_event(currentEvent, already_used):
 
 #remove excess already_Used events
 def cleanup_already_used(already_used):
-    # to properly remove items in the array while iterating it at same time, we need to delete backwards so indexes don't get messed up
-    # create a range starting at end accounting for base 0 index, decrementing by 1, and stopping when we get out of array range
-    # example for array of 4 items the range would yield (3, 2, 1, 0)
-
     # keep events around for a period of time after their ending. Google is slow to drop past events off list
     history_retention = get_time() + adafruit_datetime.timedelta(hours=2)
 
+    # to properly remove items in the array while iterating it at same time, we need to delete backwards so indexes don't get messed up
+    # create a range starting at end accounting for base 0 index, decrementing by 1, and stopping when we get out of array range
+    # example for array of 4 items the range would yield (3, 2, 1, 0)
     for i in range(len(already_used) -1, -1, -1):
         # see if retention time is already passed end of end of event
         if history_retention > get_time(intime = already_used[i]["End"]):
@@ -185,6 +186,20 @@ def trigger_relay(config, evtsubject, eventID, Relays):
     # if we didn't find the relay, report that out
     if not bRelayFound:
         print("relay " + evtsubject[0] + " on event(" + eventID + ") not found in configuration")
+
+
+def print_calendar(caldata, already_used):
+    print("-------------- START CALENDAR --------------")
+
+    # inspect all events and handle any that are due. There may be more than one calendar event/relay at the same time
+    for event in caldata:
+        # pull time out of the event and format it properly
+        event_start = get_time(intime = event["Start"])
+        event_end = get_time(intime = event["End"])
+
+        print("%s | %s to %s | %s | %s | %s" % (str(check_handled_event(event, already_used)), event_start, event_end, event["Title"], event["Action"], event["ID"]))
+
+    print("--------------  END CALENDAR  --------------")
 
 
 def main():
@@ -229,27 +244,26 @@ def main():
         relay.value = config["Relays_InitalState"][index]
     
     # setup our time tracker and initial refresh times
-    current_time = get_time()
-    INTERVAL_CALENDAR_UDPATE = 60           # check once a minute
-    INTERVAL_TIME_UPDATE = 60 * 60 * 4      # 60 * 60 * 4 hours  
-    INTERVAL_ALREADY_USED_CLEANUP = 60      # 60*60  hourly
+    INTERVAL_CALENDAR_UDPATE = 60 * 2       # check once every 2 minutes
+    INTERVAL_TIME_UPDATE = 60 * 60 * 12     # check every 12 hours 60 * 60 * 12
+    INTERVAL_ALREADY_USED_CLEANUP = 60*60   # check hourly 60*60
 
+    current_time = get_time()
     next_calendar_update = current_time + adafruit_datetime.timedelta(seconds=INTERVAL_CALENDAR_UDPATE)
     next_time_update = current_time + adafruit_datetime.timedelta(seconds=INTERVAL_TIME_UPDATE)
     next_already_used_cleanup = current_time + adafruit_datetime.timedelta(seconds=INTERVAL_ALREADY_USED_CLEANUP)
 
-    print("Performing first retrieval")
-    caldata = get_eventlist(config['magic_url'], rgb_led)
-    print(caldata)
-    print("caldata Done")
-
     # keep a list of all the events we've processed
     already_used = []
 
+    print("Performing first retrieval")
+    caldata = get_eventlist(config['magic_url'], rgb_led)
+    print_calendar(caldata, already_used)
+    
     # all setup. now we just loop forever doing our tasks
     while True:
         # always take a break between loop iterations
-        time.sleep(30)   # set in seconds. set to 1 for debug purposes. ever 30 seconds normally
+        time.sleep(30)   # set in seconds. set to 1 for debug purposes. every 30 seconds normally
         current_time = get_time()
 
         # pico loses time easily, so regularly resync the real time clock (RTC)
@@ -271,22 +285,22 @@ def main():
         if current_time >= next_calendar_update:
             print("Performing Calander Update." )
             caldata = get_eventlist(config['magic_url'], rgb_led)
+            print_calendar(caldata, already_used)
 
             # schedule the next calendar refresh
             next_calendar_update =  current_time + adafruit_datetime.timedelta(seconds=INTERVAL_CALENDAR_UDPATE)
-            #print(adafruit_datetime.datetime.fromtimestamp(next_calendar_update))
-    
+
+        print("current time %s" % (current_time))
+
         # inspect all events and handle any that are due. There may be more than one calendar event/relay at the same time
         for event in caldata:
             # make sure we haven't already handled this event
             if check_handled_event(event, already_used):
-                print("skipping event(" + event["ID"] + "). already handled")
+                print("    skipping event(" + event["ID"] + "). already handled")
             else:
                 # pull time out of the event and format it properly
                 event_start = get_time(intime = event["Start"])
                 event_end = get_time(intime = event["End"])
-
-                print("starttime %s, endtime %s, ctime %s" % (event_start, event_end, current_time))
 
                 # if current time is equal or past the event start time and we are still within the window to perform the task
                 if  current_time > event_end:
@@ -298,23 +312,24 @@ def main():
                     # record it so we can skip on future passes
                     already_used.append(event)
                 
-                    print("Working on event: %s, with action of %s, and start at %s" % (event["ID"],event["Action"],event_start))
+                    print("    Working on event: %s, with action of %s, and start at %s" % (event["ID"],event["Action"],event_start))
 
                     # Split the event action into an array of exactly 2 dimensions with a space of divider. 
                     # format should be <relay name> <action>
                     # ex: "GATE ON"
                     evtsubject = event["Action"].split(" ")
                     if len(evtsubject) != 2:
-                        print("event lacks proper relay and status from calendar helper function")
+                        print("    event lacks proper relay and status from calendar helper function")
                         continue #skip this event
 
                     # Run through the relay mappings
                     trigger_relay(config, evtsubject, event["ID"], Relays)
                 else:
-                    print("too early for %s" % event["ID"])
+                    print("    too early for %s" % event["ID"])
 
-        # @JACKSON i'm wondering if we should set a time period for a daily reboot
+        # @JACKSON i'm wondering if we should set a time period for a daily/weekly reboot
         # if internet connection is lost, I don't see how program reestablishes internet/time server connection again in future
+        # downside though is anything cached on the calendar would be lost on reboot
 
 
 
