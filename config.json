@@ -1,10 +1,10 @@
 {
   "WiFi_Settings": {
-    "SSID": "H2OMARK-Gate",
+    "SSID": "your_ssid",
     "Password": "password",
     "NTP_server": "pool.ntp.org"
   },
-  "magic_url": "https://script.google.com/macros/s/81J6WAyUPGox18KXmt04WABhG6qQz2Kpis9wA9syTaXsg7KA6v/exec",
+  "magic_url": "https://your Google Apps Script API URL",
   "Relays_InitalState": [
     false,
     false,
