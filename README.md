@@ -32,7 +32,7 @@ The relay names can be customized in the settings file. Relay names must not con
 7. Leave the Execute as you
 8. Change the Who has access dropdown to Anyone
 9. Click the deploy button
-10. Copy the Web app URL to the magic link section of the config file.
+10. Copy the Web app URL to the magic URL section of the config file.
 ### Raspberry Pi Pico W
 1. Download the lates version of circutpython from [circutpython.org](https://circuitpython.org/board/raspberry_pi_pico_w/).
 2. Hold down the BOOTSEL button on the board and power on the board.
