@@ -7,10 +7,10 @@ The controller will cache events up-to two weeks in advance.
 The controller will respond to each event in turn with the calendar event description triggering an action on the controller.
 
 A calendar event should be in the following format
-Subject = any event name for logging purposes
-Description = ```TriggerName```
-Start = date and time event should turn relay on
-End = date and time event should turn relay off
+1. Subject = any event name for logging purposes
+2. Description = ```TriggerName```
+3. Start = date and time event should turn relay on
+4. End = date and time event should turn relay off
 
 So a example would be:  
 ```R8```
