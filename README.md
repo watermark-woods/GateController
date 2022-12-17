@@ -41,3 +41,9 @@ The relay names can be customized in the settings file. Relay names must not con
 5. Ensure the latest Adafruit libraries for the correct CircuitPython version are installed in /lib for adafruit_datetime, adafruit_ntp, and adafruit_requests.
 6. Copy the code.py file and the settings file to the filesystem of the Pico W.
 7. Update the config.json file with the correct settings.
+
+## HARDWARE
+1. Raspbery Pi PICO W
+2. VOGURTIME 5V Relay Module with Optocoupler Isolation Support High and Low Level Trigger Relay Red Board (8 Channel 5V Relay) 
+3. RGB LED
+
