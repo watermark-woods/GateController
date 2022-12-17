@@ -1,18 +1,22 @@
 # GateController
 This repository houses the code for the watermark woods gate controller, it is ment to be deployed on a Raspberry Pi Pico W via circutpython.
-edit the config.yaml file with the correct wifi settings, Magic URL, and Special Names
+edit the config.json file with the correct wifi settings, Magic URL, and Relay configuration
 
 Custom google apps scripts must be uploaded to better format calender events for the gate controller to use.
 The controller will cache events up-to two weeks in advance.
-The controller will respond to each event intern with the subject being the key to triggering an action on the controller.
+The controller will respond to each event in turn with the subject being the calendar event description to triggering an action on the controller.
 
-A event should be in the following format  
-```TriggerName TriggerValue```
+A calendar event should be in the following format
+```TriggerName```
 
 So a example would be:  
-```R8 On```
+```R8```
 
-Theses names can be customized in the settings file.
+The Google Apps Script will default the relay name to GATE if a name not provided.
+
+The calendar event title is used for logging in the python script. The calendar event start and stop times are used to create two events for the python script. The first event is the ON event, which starts at the calendar event time and goes until the end of the calendar event LESS one minute. The second event created is an OFF event, which starts when the calendar event ends and goes for 15 minutes.
+
+The relay names can be customized in the settings file. Relay names must not contain a space.
 
 ## Installing and running
 ### Google Cloud
@@ -30,5 +34,6 @@ Theses names can be customized in the settings file.
 2. Hold down the BOOTSEL button on the board and power on the board.
 3. Drag the uf2 file onto the board.
 4. Wait for the board to boot up.
-5. Copy the code.py file and the settings file to the filesystem of the Pico W.
-6. Update the config.json file with the correct settings.
+5. Ensure the latest Adafruit libraries for the correct CircuitPython version are installed in /lib for adafruit_datetime, adafruit_ntp, and adafruit_requests.
+6. Copy the code.py file and the settings file to the filesystem of the Pico W.
+7. Update the config.json file with the correct settings.
