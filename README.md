@@ -14,7 +14,7 @@ A calendar event should be in the following format
 3. Start = date and time event should turn relay on
 4. End = date and time event should turn relay off
 
-So a example would be:  
+So a example calendar event description would be:  
 ```R8```
 
 The Google Apps Script will default the relay name to GATE if a name not provided. The calendar event title is used for logging in the Python script. The calendar event start and end times are used to create two events for the python script. The first event is the ON event, which starts at the calendar event time and goes until the end of the calendar event LESS one minute. The second event created is an OFF event, which starts when the calendar event ends and goes for 15 minutes.
