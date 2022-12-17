@@ -1,13 +1,16 @@
 # GateController
-This repository houses the code for the watermark woods gate controller, it is ment to be deployed on a Raspberry Pi Pico W via circutpython.
-edit the config.json file with the correct wifi settings, Magic URL, and Relay configuration
+This repository houses the code for the Watermark Woods gate controller, it is meant to be deployed on a Raspberry Pi Pico W via CircuitPython.
+Edit the config.json file with the correct wifi settings, Magic URL, and relay configuration.
 
-Custom google apps scripts must be uploaded to better format calender events for the gate controller to use.
+Custom Google Apps script must be uploaded to better format calender events for the gate controller to use.
 The controller will cache events up-to two weeks in advance.
-The controller will respond to each event in turn with the subject being the calendar event description to triggering an action on the controller.
+The controller will respond to each event in turn with the calendar event description triggering an action on the controller.
 
 A calendar event should be in the following format
-```TriggerName```
+Subject = any event name for logging purposes
+Description = ```TriggerName```
+Start = date and time event should turn relay on
+End = date and time event should turn relay off
 
 So a example would be:  
 ```R8```
