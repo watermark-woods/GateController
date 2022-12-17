@@ -4,65 +4,47 @@
     "Password": "password",
     "NTP_server": "pool.ntp.org"
   },
-  "magic_url": "https://your Google Apps Script API URL",
-  "Relays_InitalState": [
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false
-  ],
+  "magic_url": "https://your Google Apps Script API URL",  
   "Relay_Mappings": [
     {
       "Name": "R1",
-      "Relay_number": 1,
-      "High_Value": "On",
-      "Low_Value": "OFF"
+      "Relay_number": 0,
+      "Initial_state": false
     },
     {
       "Name": "R2",
-      "Relay_number": 2,
-      "High_Value": "On",
-      "Low_Value": "OFF"
+      "Relay_number": 1,
+      "Initial_state": false
     },
     {
       "Name": "R3",
-      "Relay_number": 3,
-      "High_Value": "On",
-      "Low_Value": "OFF"
+      "Relay_number": 2,
+      "Initial_state": false
     },
     {
       "Name": "R4",
-      "Relay_number": 4,
-      "High_Value": "On",
-      "Low_Value": "OFF"
+      "Relay_number": 3,
+      "Initial_state": false
     },
     {
       "Name": "R5",
-      "Relay_number": 5,
-      "High_Value": "On",
-      "Low_Value": "OFF"
+      "Relay_number": 4,
+      "Initial_state": false
     },
     {
       "Name": "R6",
+      "Relay_number": 5,
+      "Initial_state": false
+    },
+    {
+      "Name": "EYEHEATER",
       "Relay_number": 6,
-      "High_Value": "On",
-      "Low_Value": "OFF"
+      "Initial_state": false
     },
     {
-      "Name": "Eye Heater",
+      "Name": "GATE",
       "Relay_number": 7,
-      "High_Value": "On",
-      "Low_Value": "OFF"
-    },
-    {
-      "Name": "Gate",
-      "Relay_number": 8,
-      "High_Value": "Open",
-      "Low_Value": "Closed"
+      "Initial_state": false
     }
   ]
 }
