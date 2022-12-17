@@ -6,6 +6,8 @@ Custom Google Apps script must be uploaded to better format calender events for 
 The controller will cache events up-to two weeks in advance.
 The controller will respond to each event in turn with the calendar event description triggering an action on the controller.
 
+The Google calendar used by the googlecloudcode.js script must be configured for UTC time.
+
 A calendar event should be in the following format
 1. Subject = any event name for logging purposes
 2. Description = ```TriggerName```
@@ -25,13 +27,14 @@ The relay names can be customized in the settings file. Relay names must not con
 ### Google Cloud
 1. In the [google apps script console](https://www.google.com/script/start/), create a new project
 2. Copy the contents of the googlecloudcode.js file to the project
-3. Save the project
-4. Click the depoy button on the top right of the page
-5. Click the gear next to select type then choose Web App
-6. Leave the Execute as you
-7. Change the Who has access dropdown to Anyone
-8. Click the deploy button
-9. Copy the Web app URL to the magic link section of the config file.
+3. Update the googlecloudcode.js to reference correct calendar name
+4. Save the project
+5. Click the depoy button on the top right of the page
+6. Click the gear next to select type then choose Web App
+7. Leave the Execute as you
+8. Change the Who has access dropdown to Anyone
+9. Click the deploy button
+10. Copy the Web app URL to the magic link section of the config file.
 ### Raspberry Pi Pico W
 1. Download the lates version of circutpython from [circutpython.org](https://circuitpython.org/board/raspberry_pi_pico_w/).
 2. Hold down the BOOTSEL button on the board and power on the board.
