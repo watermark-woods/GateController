@@ -4,47 +4,40 @@
     "Password": "password",
     "NTP_server": "pool.ntp.org"
   },
-  "magic_url": "https://your Google Apps Script API URL",  
+  "magic_url": "https://your Google Apps Script API URL",
+  "GMT_offset": -5,
   "Relay_Mappings": [
     {
       "Name": "R1",
-      "Relay_number": 0,
-      "Initial_state": false
+      "Relay_number": 0
     },
     {
       "Name": "R2",
-      "Relay_number": 1,
-      "Initial_state": false
+      "Relay_number": 1
     },
     {
       "Name": "R3",
-      "Relay_number": 2,
-      "Initial_state": false
+      "Relay_number": 2
     },
     {
       "Name": "R4",
-      "Relay_number": 3,
-      "Initial_state": false
+      "Relay_number": 3
     },
     {
       "Name": "R5",
-      "Relay_number": 4,
-      "Initial_state": false
+      "Relay_number": 4
     },
     {
       "Name": "R6",
-      "Relay_number": 5,
-      "Initial_state": false
+      "Relay_number": 5
     },
     {
       "Name": "EYEHEATER",
-      "Relay_number": 6,
-      "Initial_state": false
+      "Relay_number": 6
     },
     {
       "Name": "GATE",
-      "Relay_number": 7,
-      "Initial_state": false
+      "Relay_number": 7
     }
   ]
 }
