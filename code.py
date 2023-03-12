@@ -5,10 +5,14 @@ from digitalio import DigitalInOut, Direction
 # declare global variables
 cached_data = ""   # used as a backup if we can't later access the calendar
 
-RGB_RED   = 0
-RGB_GREEN = 1
-RGB_BLUE  = 2
-RGB_OFF   = 3
+RGB_RED       = 0
+RGB_GREEN     = 1
+RGB_BLUE      = 2
+RGB_PURPLE    = 3
+RGB_YELLOW    = 4
+RGB_TURQUOISE = 5
+RGB_ALL       = 6
+RGB_OFF       = 7
 
 # simple loading of the configuration
 def load_config():
@@ -19,18 +23,36 @@ def load_config():
 def set_rgb_led(rgb_led, rgb_color):
 
     if rgb_color == RGB_RED:
-        rgb_led[RGB_RED].value = 1
+        rgb_led[RGB_RED].value   = 1
+        rgb_led[RGB_GREEN].value = 0
+        rgb_led[RGB_BLUE].value  = 0
+    elif rgb_color == RGB_GREEN:
+        rgb_led[RGB_RED].value   = 0
+        rgb_led[RGB_GREEN].value = 1
+        rgb_led[RGB_BLUE].value  = 0
+    elif rgb_color == RGB_BLUE:
+        rgb_led[RGB_RED].value   = 0
+        rgb_led[RGB_GREEN].value = 0
+        rgb_led[RGB_BLUE].value  = 1
+    elif rgb_color == RGB_PURPLE:
+        rgb_led[RGB_RED].value   = 1
+        rgb_led[RGB_GREEN].value = 0
+        rgb_led[RGB_BLUE].value  = 1
+    elif rgb_color == RGB_YELLOW:
+        rgb_led[RGB_RED].value   = 1
+        rgb_led[RGB_GREEN].value = 1
+        rgb_led[RGB_BLUE].value  = 0
+    elif rgb_color == RGB_TURQUOISE:
+        rgb_led[RGB_RED].value   = 0
+        rgb_led[RGB_GREEN].value = 1
+        rgb_led[RGB_BLUE].value  = 1
+    elif rgb_color == RGB_ALL:
+        rgb_led[RGB_RED].value   = 1
+        rgb_led[RGB_GREEN].value = 1
+        rgb_led[RGB_BLUE].value  = 1
     else:
         rgb_led[RGB_RED].value = 0
-        
-    if rgb_color == RGB_GREEN:
-        rgb_led[RGB_GREEN].value = 1
-    else:
         rgb_led[RGB_GREEN].value = 0
-
-    if rgb_color == RGB_BLUE:
-        rgb_led[RGB_BLUE].value = 1
-    else:
         rgb_led[RGB_BLUE].value = 0
 
 
@@ -197,14 +219,19 @@ def initialize_rgb_led(rgb_led):
     set_rgb_led(rgb_led, RGB_BLUE)
     time.sleep(1)
 
+    print("ALL")
+    set_rgb_led(rgb_led, RGB_ALL)
+    time.sleep(1)
+
     set_rgb_led(rgb_led, RGB_OFF)
 
 
 def initialize_relays(config, Relays):
-    # loop through full array list and set the correct pin direction, then toggle it on and off as a visual/audio confirmation wired correctly at bootup
+    # loop through full array list and set the correct pin direction
     for r_map in config['Relay_Mappings']:
         Relays[r_map["Relay_number"]].direction = Direction.OUTPUT
 
+    # toggle each one on and off as a visual/audio confirmation wired correctly at bootup
     for r_map in config['Relay_Mappings']:
         print("%s(%s) CONNECTION TEST" % (r_map["Name"], r_map["Relay_number"]))
         Relays[r_map["Relay_number"]].value = True
@@ -291,12 +318,8 @@ def main():
     INTERVAL_TIME_UPDATE = 60 * 60 * 12     # resynch every 12 hours (60 seconds * 60 minutes * 12 hours)
 
     current_time = get_time()
-    next_calendar_update = current_time + adafruit_datetime.timedelta(seconds=INTERVAL_CALENDAR_UDPATE)
+    next_calendar_update = current_time - adafruit_datetime.timedelta(seconds=INTERVAL_CALENDAR_UDPATE) # force an initial load
     next_time_update = current_time + adafruit_datetime.timedelta(seconds=INTERVAL_TIME_UPDATE)
-
-    print("Performing first retrieval")
-    caldata = get_eventlist(http_req, config['magic_url'], rgb_led)
-    print_calendar(caldata)
 
     # all setup. now we just loop forever doing our tasks
     while True:
@@ -310,7 +333,6 @@ def main():
 
         # refresh our calendar on a schedule
         if current_time >= next_calendar_update:
-            print("Performing Calander Update")
             caldata = get_eventlist(http_req, config['magic_url'], rgb_led)
             print_calendar(caldata)
             next_calendar_update =  current_time + adafruit_datetime.timedelta(seconds=INTERVAL_CALENDAR_UDPATE)
@@ -320,14 +342,16 @@ def main():
 
         # reboot daily around midnight. Not factoring in DST so this could be 1 am.
         if current_time.hour + config['GMT_offset'] == 0 and current_time.minute < 15:
-            # wait 16 minutes to ensure after reboot we don't do this again for 24 hours
+        # wait 16 minutes to ensure after reboot we don't do this again for 24 hours
             print("------------- time for our daily reboot in 16 minutes. Just chill till then -------------")
+            set_rgb_led(rgb_led, RGB_ALL)
             time.sleep(60*16)
             microcontroller.reset()
 
         # always take a break between loop iterations
         time.sleep(1)
 
+        # blink so we know the main program is still running
         set_rgb_led(rgb_led, RGB_OFF)
         time.sleep(0.2)
         set_rgb_led(rgb_led, RGB_GREEN)
