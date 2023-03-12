@@ -38,31 +38,15 @@ function GetEvents() {
            relayName = "GATE";
         };
         
-        // Create On event with only the required fields based upon calendar Start time, valid for the entire duration
-        // less one minute to avoid overlap with the off event
+        // Create event with only the required fields based upon calendar Start time, valid for the entire duration
         dtStart = element.getStartTime();
         dtEnd = element.getEndTime();
-        dtEnd.setMinutes(dtEnd.getMinutes() - 1);
         calEvent = {
             "Start": formatReadableDate(dtStart),
             "End": formatReadableDate(dtEnd),
             "Title": element.getTitle(),
-            "Action": relayName + " ON",
-            "ID": element.getId() + "ON"
-        };
-        // Add to output array
-        outEvents.push(calEvent);
-        
-        // Create Off event with only the required fields based upon calendar end time, for 15 minutes for cushion
-        dtStart = element.getEndTime();
-        dtEnd = element.getEndTime();
-        dtEnd.setMinutes(dtEnd.getMinutes() + 15);
-        calEvent = {
-            "Start": formatReadableDate(dtStart),
-            "End": formatReadableDate(dtEnd),
-            "Title": element.getTitle(),
-            "Action": relayName + " OFF",
-            "ID": element.getId() + "OFF"
+            "Action": relayName,
+            "ID": element.getId()
         };
         // Add to output array
         outEvents.push(calEvent);
