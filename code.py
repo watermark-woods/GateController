@@ -65,6 +65,10 @@ def connect_to_wifi(network_SSID, network_password, rgb_led):
             print("Bad SSID/Password could not connect")
             set_rgb_led(rgb_led, RGB_RED)
             return False
+        except:
+            print("Error connecting to WiFi: unknown error")
+            return False
+
 
         if wifi.radio.ipv4_address is None: # If the device is not connected to the WiFi network
             # keep trying until we want to give up
@@ -168,6 +172,10 @@ def get_eventlist(http_req, calendar_url, rgb_led):
         print("Error getting calendar data")
         print(err)
         return cached_data
+    except:
+        print("Error getting calendar data: Unknown error")
+        return cached_data
+
 
     # check that we had a successful GET call
     if response.status_code != 200:
