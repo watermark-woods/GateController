@@ -51,9 +51,9 @@ def set_rgb_led(rgb_led, rgb_color):
         rgb_led[RGB_GREEN].value = 1
         rgb_led[RGB_BLUE].value  = 1
     else:
-        rgb_led[RGB_RED].value = 0
+        rgb_led[RGB_RED].value   = 0
         rgb_led[RGB_GREEN].value = 0
-        rgb_led[RGB_BLUE].value = 0
+        rgb_led[RGB_BLUE].value  = 0
 
 
 def connect_to_wifi(network_SSID, network_password, rgb_led):
@@ -95,7 +95,7 @@ def connect_to_wifi(network_SSID, network_password, rgb_led):
     return True
 
 
-def create_ntp(pool, ntp_host = "pool.ntp.org"):
+def create_ntp(pool, rgb_led, ntp_host = "pool.ntp.org"):
     global ntptime
     ntptime = adafruit_ntp.NTP(pool, server=ntp_host, tz_offset=0)
     try:
@@ -103,6 +103,8 @@ def create_ntp(pool, ntp_host = "pool.ntp.org"):
         print("Initial timesync done")
     except:
         print("could not get time from server, waiting 3 minutes then rebooting")
+        set_rgb_led(rgb_led, RGB_RED)
+
         time.sleep(180)
         microcontroller.reset()
 
@@ -227,15 +229,14 @@ def initialize_rgb_led(rgb_led):
 
 
 def initialize_relays(config, Relays):
-    # loop through full array list and set the correct pin direction
+    # loop through full array list and set the correct pin direction, then toggle it on and off as a visual/audio confirmation wired correctly at bootup
     for r_map in config['Relay_Mappings']:
         Relays[r_map["Relay_number"]].direction = Direction.OUTPUT
 
-    # toggle each one on and off as a visual/audio confirmation wired correctly at bootup
     for r_map in config['Relay_Mappings']:
         print("%s(%s) CONNECTION TEST" % (r_map["Name"], r_map["Relay_number"]))
         Relays[r_map["Relay_number"]].value = True
-        time.sleep(1)
+        time.sleep(0.3)
         Relays[r_map["Relay_number"]].value = False
 
 
@@ -267,14 +268,18 @@ def set_relays_to_calendar(caldata, Relays, current_time, config):
             # time to turn a relay off
             print("   turning OFF %s (relay %s)" % (config['Relay_Mappings'][i]["Name"], i))
             Relays[i].value = False
+            time.sleep(0.1)
         elif Relays[i].value == False and relay_active_events[i] == True:
             # time to turn a relay on
             print("   turning ON %s (relay %s)" % (config['Relay_Mappings'][i]["Name"], i))
             Relays[i].value = True
-
+            time.sleep(0.1)
 
 
 def main():
+    # not sure what garbage collection is default, explicitly turning on
+    gc.enable()
+    
     # set up our LED
     rgb_led = [
         DigitalInOut(board.GP3), # Red LED
@@ -298,7 +303,7 @@ def main():
     http_req = adafruit_requests.Session(pool, ssl_context=ssl.create_default_context())
 
     # since no battery in PICO, update the time so we can compare to calendar
-    create_ntp(pool, config['WiFi_Settings']['NTP_server'])
+    create_ntp(pool, rgb_led, config['WiFi_Settings']['NTP_server'])
 
     # Initialize the Relays
     Relays = [
@@ -324,8 +329,7 @@ def main():
     # all setup. now we just loop forever doing our tasks
     while True:
         current_time = get_time()
-        #print("current time %s" % (current_time))
-
+        
         # pico loses time easily, so regularly resync the real time clock (RTC)
         if current_time >= next_time_update:
             update_time_from_ntp()
@@ -335,17 +339,21 @@ def main():
         if current_time >= next_calendar_update:
             caldata = get_eventlist(http_req, config['magic_url'], rgb_led)
             print_calendar(caldata)
+            print("current time %s" % (current_time))
             next_calendar_update =  current_time + adafruit_datetime.timedelta(seconds=INTERVAL_CALENDAR_UDPATE)
+
+            # forcing garbage collection each calendar update
+            gc.collect()
 
         # Every loop iteration we process the calendar
         set_relays_to_calendar(caldata, Relays, current_time, config)
 
         # reboot daily around midnight. Not factoring in DST so this could be 1 am.
-        if current_time.hour + config['GMT_offset'] == 0 and current_time.minute < 15:
-        # wait 16 minutes to ensure after reboot we don't do this again for 24 hours
-            print("------------- time for our daily reboot in 16 minutes. Just chill till then -------------")
+        if current_time.hour + config['GMT_offset'] == 0 and current_time.minute < 5:
+            # wait 5 minutes to ensure after reboot we don't do this again for 24 hours
+            print("------------- time for our daily reboot in 10 minutes. Just chill till then -------------")
             set_rgb_led(rgb_led, RGB_ALL)
-            time.sleep(60*16)
+            time.sleep(60*5)
             microcontroller.reset()
 
         # always take a break between loop iterations
