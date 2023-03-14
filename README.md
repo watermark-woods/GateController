@@ -14,12 +14,10 @@ A calendar event should be in the following format
 3. Start = date and time event should turn relay on
 4. End = date and time event should turn relay off
 
-So a example calendar event description would be:  
-```R8```
+So an example calendar event description would be:  
+```R2```
 
-The Google Apps Script will default the relay name to GATE if no event description is present. The calendar event title is used for logging in the Python script. The calendar event start and end times are used to create two events for the Python script. The first event is the ON event, which starts at the calendar event time and goes until the end of the calendar event LESS one minute. The second event created is an OFF event, which starts when the calendar event ends and goes for 15 minutes.
-
-The relay names can be customized in the settings file. Relay names must not contain a space and must be all uppercase.
+The Google Apps Script will default the relay name to GATE if no event description is present. The calendar event title is used for logging in the Python script. The relay names can be customized in the settings file. Relay names must not contain a space, and are case insensitive.
 
 ## Installing and running
 ### Google Cloud
@@ -46,4 +44,3 @@ The relay names can be customized in the settings file. Relay names must not con
 1. Raspbery Pi PICO W
 2. VOGURTIME 5V Relay Module with Optocoupler Isolation Support High and Low Level Trigger Relay Red Board (8 Channel 5V Relay) 
 3. RGB LED
-
