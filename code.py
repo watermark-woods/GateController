@@ -11,7 +11,7 @@ RGB_BLUE      = 2
 RGB_PURPLE    = 3
 RGB_YELLOW    = 4
 RGB_TURQUOISE = 5
-RGB_ALL       = 6
+RGB_WHITE     = 6
 RGB_OFF       = 7
 
 # simple loading of the configuration
@@ -46,7 +46,7 @@ def set_rgb_led(rgb_led, rgb_color):
         rgb_led[RGB_RED].value   = 0
         rgb_led[RGB_GREEN].value = 1
         rgb_led[RGB_BLUE].value  = 1
-    elif rgb_color == RGB_ALL:
+    elif rgb_color == RGB_WHITE:
         rgb_led[RGB_RED].value   = 1
         rgb_led[RGB_GREEN].value = 1
         rgb_led[RGB_BLUE].value  = 1
@@ -230,7 +230,7 @@ def initialize_rgb_led(rgb_led):
     time.sleep(1)
 
     print("ALL")
-    set_rgb_led(rgb_led, RGB_ALL)
+    set_rgb_led(rgb_led, RGB_WHITE)
     time.sleep(1)
 
     set_rgb_led(rgb_led, RGB_OFF)
@@ -242,7 +242,7 @@ def initialize_relays(config, Relays):
         Relays[r_map["Relay_number"]].direction = Direction.OUTPUT
 
     for r_map in config['Relay_Mappings']:
-        print("%s(%s) CONNECTION TEST" % (r_map["Name"], r_map["Relay_number"]))
+        print("%s(%s) CONNECTION TEST" % (r_map["Name"], r_map["Relay_number"]+1))
         Relays[r_map["Relay_number"]].value = True
         time.sleep(0.3)
         Relays[r_map["Relay_number"]].value = False
@@ -274,14 +274,12 @@ def set_relays_to_calendar(caldata, Relays, current_time, config):
     for i in range(0,len(Relays)):
         if Relays[i].value == True and relay_active_events[i] == False:
             # time to turn a relay off
-            print("   turning OFF %s (relay %s)" % (config['Relay_Mappings'][i]["Name"], i))
+            print("   turning OFF %s (relay %s)" % (config['Relay_Mappings'][i]["Name"], i+1))
             Relays[i].value = False
-            time.sleep(0.1)
         elif Relays[i].value == False and relay_active_events[i] == True:
             # time to turn a relay on
-            print("   turning ON %s (relay %s)" % (config['Relay_Mappings'][i]["Name"], i))
+            print("   turning ON %s (relay %s)" % (config['Relay_Mappings'][i]["Name"], i+1))
             Relays[i].value = True
-            time.sleep(0.1)
 
 
 def main():
@@ -329,10 +327,13 @@ def main():
     # setup our time tracker and initial refresh times
     INTERVAL_CALENDAR_UDPATE = 60 * 1       # check once every 1 minutes
     INTERVAL_TIME_UPDATE = 60 * 60 * 12     # resynch every 12 hours (60 seconds * 60 minutes * 12 hours)
+    INTERVAL_BLINK       = 2                # frequency of blinking
 
     current_time = get_time()
     next_calendar_update = current_time - adafruit_datetime.timedelta(seconds=INTERVAL_CALENDAR_UDPATE) # force an initial load
     next_time_update = current_time + adafruit_datetime.timedelta(seconds=INTERVAL_TIME_UPDATE)
+    next_blink_update = current_time + adafruit_datetime.timedelta(seconds=INTERVAL_BLINK)
+
 
     # all setup. now we just loop forever doing our tasks
     while True:
@@ -357,20 +358,19 @@ def main():
         set_relays_to_calendar(caldata, Relays, current_time, config)
 
         # reboot daily around midnight. Not factoring in DST so this could be 1 am.
-        if current_time.hour + config['GMT_offset'] == 0 and current_time.minute < 5 and False:
+        if current_time.hour + config['GMT_offset'] == 0 and current_time.minute < 5:
             # wait 5 minutes to ensure after reboot we don't do this again for 24 hours
             print("------------- time for our daily reboot in 10 minutes. Just chill till then -------------")
-            set_rgb_led(rgb_led, RGB_ALL)
+            set_rgb_led(rgb_led, RGB_WHITE)
             time.sleep(60*5)
             microcontroller.reset()
 
-        # always take a break between loop iterations
-        time.sleep(1)
-
-        # blink so we know the main program is still running
-        set_rgb_led(rgb_led, RGB_OFF)
-        time.sleep(0.2)
-        set_rgb_led(rgb_led, RGB_GREEN)
+        if current_time >= next_blink_update:
+            # blink so we know the main program is still running
+            set_rgb_led(rgb_led, RGB_OFF)
+            time.sleep(0.2)
+            set_rgb_led(rgb_led, RGB_GREEN)
+            next_blink_update = current_time + adafruit_datetime.timedelta(seconds=INTERVAL_BLINK)
 
 
 # kick things off         
