@@ -19,7 +19,6 @@ function GetEvents() {
     var Now = new Date();
     var Later = new Date();
 
-    Now.setMinutes(Now.getMinutes() - 30) // pull events from 30 minutes in past to ensure overlap for STOP actions
     Later.setDate(Now.getDate() + 14); // Go 2 weeks from now
     var events = Cal.getEvents(Now, Later, {"max": 25}); // Get the events
     var outEvents = new Array();
