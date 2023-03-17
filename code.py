@@ -360,7 +360,7 @@ def main():
         # reboot daily around midnight. Not factoring in DST so this could be 1 am.
         if current_time.hour + config['GMT_offset'] == 0 and current_time.minute < 5:
             # wait 5 minutes to ensure after reboot we don't do this again for 24 hours
-            print("------------- time for our daily reboot in 10 minutes. Just chill till then -------------")
+            print("------------- time for our daily reboot in 5 minutes. Just chill till then -------------")
             set_rgb_led(rgb_led, RGB_WHITE)
             time.sleep(60*5)
             microcontroller.reset()
