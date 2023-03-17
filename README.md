@@ -10,7 +10,7 @@ The Google calendar used by the googlecloudcode.js script must be configured for
 
 A calendar event should be in the following format
 1. Subject = any event name for logging purposes
-2. Description = ```RelayName```
+2. Description = ```RelayName``` with NO formatting. Must be plain text, no hidden HTML tags.
 3. Start = date and time event should turn relay on
 4. End = date and time event should turn relay off
 
