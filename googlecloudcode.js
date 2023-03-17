@@ -31,7 +31,7 @@ function GetEvents() {
 
     events.forEach(element => {
         // get Relay of event and force all caps for comparisons
-        relayName = element.getDescription().toUpperCase();
+        relayName = element.getDescription().trim().toUpperCase();
 
         // Default Relay to Gate if not specified
         if (relayName=="") {
