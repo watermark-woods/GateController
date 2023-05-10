@@ -326,7 +326,7 @@ def main():
 
     # setup our time tracker and initial refresh times
     INTERVAL_CALENDAR_UDPATE = 60 * 1       # check once every 1 minutes
-    INTERVAL_TIME_UPDATE = 60 * 60 * 12     # resynch every 12 hours (60 seconds * 60 minutes * 12 hours)
+    INTERVAL_TIME_UPDATE = 60 * 60 * 1     # resynch every 1 hours (60 seconds * 60 minutes * 1 hours)
     INTERVAL_BLINK       = 2                # frequency of blinking
 
     current_time = get_time()
