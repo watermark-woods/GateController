@@ -36,7 +36,7 @@ The Google Apps Script will default the relay name to GATE if no event descripti
 2. Hold down the BOOTSEL button on the board and power on the board.
 3. Drag the uf2 file onto the board.
 4. Wait for the board to boot up.
-5. Ensure the latest Adafruit libraries for the correct CircuitPython version are installed in /lib for adafruit_datetime, adafruit_ntp, and adafruit_requests.
+5. Ensure the latest Adafruit libraries for the correct CircuitPython version are installed in /lib for adafruit_datetime, adafruit_ntp, and adafruit_requests which can be downloaded at https://circuitpython.org/libraries.
 6. Copy the code.py file and the settings file to the filesystem of the Pico W.
 7. Update the config.json file with the correct settings.
 
