@@ -125,7 +125,51 @@ def update_time_from_ntp():
 
 def get_time(intime = None):
     # we default to current time unless a particular time was passed
-    if intime is None: 
+    handled = False
+
+    if not intime == None:
+        # time format should be "YYYY-MM-DD HH:MM:SS"
+
+        # split date from time
+        datetimeparts = intime.split(" ")
+        if len(datetimeparts) == 2:
+            dateparts = datetimeparts[0].split("-") # chunk the date up
+            timeparts = datetimeparts[1].split(":") # chunk the time up
+
+            if (len(dateparts)==3 and len(timeparts) == 3):
+                #we have a properly formatted date time string that we successfully parsed
+
+                nYear=int(dateparts[0])
+                nMonth=int(dateparts[1])
+                nDay=int(dateparts[2])
+                nHour=int(timeparts[0])
+                nMinute=int(timeparts[1])
+                nSecond=int(timeparts[2])
+
+                #now check the boundaries just to be sure
+                badData = False
+                if (nYear<2024 or nYear > 2100):
+                    badData = True
+                if (nMonth<1 or nMonth > 12):
+                    badData = True
+                if (nDay<1 or nDay>31):
+                    badData = True
+                if (nHour<0 or nHour>23):
+                    badData = True
+                if (nMinute<0 or nMinute>59):
+                    badData = True
+                if (nSecond<0 or nSecond>59):
+                    badData = True
+
+                # if we finally have parsed it with good data, we can use it
+                if not badData:
+                    handled = True
+
+                    # need to convert time format into datetime format
+                    ada_datetime = adafruit_datetime.datetime(year=nYear, month=nMonth, day=nDay, hour=nHour, minute=nMinute, second=nSecond)
+
+    # we default to current time if no time was passed in or if it wasn't properly formatted
+    if not handled:
         event_date_time = time.localtime()
 
         ada_datetime =  adafruit_datetime.datetime(
@@ -135,21 +179,6 @@ def get_time(intime = None):
             hour=event_date_time.tm_hour, 
             minute=event_date_time.tm_min,
             second=event_date_time.tm_sec
-        )
-    else:
-        # time format is "YYYY-MM-DD HH:MM:SS"
-        datetimeparts = intime.split(" ") # split date from time
-        dateparts = datetimeparts[0].split("-") # chunk the date up
-        timeparts = datetimeparts[1].split(":") # chunk the time up
-
-        # need to convert time format into datetime format
-        ada_datetime = adafruit_datetime.datetime(
-            year=int(dateparts[0]),
-            month=int(dateparts[1]), 
-            day=int(dateparts[2]), 
-            hour=int(timeparts[0]), 
-            minute=int(timeparts[1]),
-            second=int(timeparts[2])
         )
 
     return ada_datetime
