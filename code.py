@@ -386,8 +386,9 @@ def main():
         # Every loop iteration we process the calendar
         set_relays_to_calendar(caldata, Relays, current_time, config)
 
+        # forcing this to ALWAYS BE FALSE as a test on reliability to see if this daily reset is still needed
         # reboot daily around midnight. Not factoring in DST so this could be 1 am.
-        if current_time.hour + config['GMT_offset'] == 0 and current_time.minute < 5:
+        if current_time.hour + config['GMT_offset'] == 0 and current_time.minute < 5 and 0 == 1:
             # wait 5 minutes to ensure after reboot we don't do this again for 24 hours
             print("------------- time for our daily reboot in 5 minutes. Just chill till then -------------")
             set_rgb_led(rgb_led, RGB_WHITE)
